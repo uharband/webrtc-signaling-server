@@ -12,7 +12,6 @@ var jsonParser = bodyParser.json()
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ type: 'application/*+json' }))
 
-
 app.listen(port,  () => {console.log("Started on PORT 57778");} )
 
 //
