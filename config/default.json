@@ -1,0 +1,6 @@
+{
+  "server": {
+    "port": 9090
+  },
+  "offerProcessingTimeoutSec": 5
+}
