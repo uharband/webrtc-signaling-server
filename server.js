@@ -103,6 +103,6 @@ app.get('/queue', function(req, res) {
         res.status(200).json({connectionId:connectionId});
     }
 
-    setTimeout(handleTimeout, processingTimout, connectionId);
+    setTimeout(handleTimeout, processingTimout*1000, connectionId);
 });
 
