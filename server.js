@@ -101,8 +101,7 @@ app.get('/queue', function(req, res) {
         res.status(404).json({err:"all offers are currently served"});
     } else {
         res.status(200).json({connectionId:connectionId});
+        setTimeout(handleTimeout, processingTimout*1000, connectionId);
     }
-
-    setTimeout(handleTimeout, processingTimout*1000, connectionId);
 });
 

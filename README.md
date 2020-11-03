@@ -1,6 +1,4 @@
-This is a simple webRTC demo
-
-It uses a simple npm package 'wrtc' to create the webRTC infra on JsonNode
+This is a webrtc signaling server for the hyperscale ptoject
 
 To use :
 
@@ -18,7 +16,9 @@ Then run the server
 
 Then run the client
 
-```node index.html
+```node client.js
+
+
 
 
 You should see the clients negotiate and connect.
