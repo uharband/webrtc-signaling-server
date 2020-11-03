@@ -1,0 +1,8 @@
+version: '2.2'
+services:
+  webrtc-signaling-server:
+    build: .
+    ports: 
+      - 57778:9090
+
+
