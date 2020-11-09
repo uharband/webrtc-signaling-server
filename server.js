@@ -20,9 +20,6 @@ const log4jsConfig = {
 log4js.configure(log4jsConfig, {});
 var logger = log4js.getLogger("server");
 
-
-
-const { nanoid } = require("nanoid");
 const storage = require("./lib/storage");
 
 const port = config.server.port;
@@ -32,7 +29,7 @@ var jsonParser = bodyParser.json()
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ type: 'application/*+json' }))
 
-app.listen(port,  () => {console.log("Started on PORT 57778");} )
+app.listen(port,  () => {console.log("Started on PORT " + port);} )
 
 const processingTimout = config.offerProcessingTimeoutSec;
 
@@ -48,10 +45,7 @@ function handleTimeout(connectionId) {
 app.post('/connections', jsonParser, function(req, res) {
     logger.info( "offer Received .. " )
 
-    const connection = {offer: req.body};
-    const connectionId = connection.offer.deviceId + nanoid(10);
-
-    storage.addConnection(connection, connectionId);
+    const connectionId = storage.addConnection(req.body);
 
     res.status(201).json({connectionId:connectionId});
 });
@@ -71,6 +65,20 @@ app.get('/connections/:connectionId/answer', function(req, res) {
         res.status(404).json({err:"response not exist"});
     } else {
         res.status(200).json(offerResp);
+    }
+
+});
+
+app.post('/connections/:connectionId/answer', jsonParser, function(req, res) {
+    logger.info( "offer response Received .. " )
+
+    const connectionId = req.params.connectionId;
+    const offerResp = req.body;
+
+    if(!storage.saveOfferResponse(connectionId, offerResp)) {
+        res.status(404).json({err:"offer not exist"});
+    } else {
+        res.status(201).json(offerResp);
     }
 
 });
@@ -103,5 +111,19 @@ app.get('/queue', function(req, res) {
         res.status(200).json({connectionId:connectionId});
         setTimeout(handleTimeout, processingTimout*1000, connectionId);
     }
+});
+
+app.post('/connections/:connectionId/ice', jsonParser, function(req, res) {
+    logger.info( "offer response Received .. " )
+
+    const connectionId = req.params.connectionId;
+    const ice = req.body;
+
+    if(!storage.saveIceCandidate(connectionId, ice)) {
+        res.status(404).json({err:"offer not exist"});
+    } else {
+        res.status(201).json(offerResp);
+    }
+
 });
 
