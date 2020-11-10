@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const bodyParser = require("body-parser");
-const config = require('config')
+const config = require('config');
+const cors = require('cors');
 
 var log4js = require("log4js");
 
@@ -27,7 +28,9 @@ const port = config.server.port;
 const app = express()
 var jsonParser = bodyParser.json()
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json({ type: 'application/*+json' }))
+app.use(bodyParser.json({ type: 'application/*+json' }));
+app.use(cors());
+
 
 app.listen(port,  () => {console.log("Started on PORT " + port);} )
 
@@ -43,7 +46,7 @@ function handleTimeout(connectionId) {
 //   Handle offer 
 //
 app.post('/connections', jsonParser, function(req, res) {
-    logger.info( "offer Received .. " )
+    logger.info( "offer Received .. " );
 
     const connectionId = storage.addConnection(req.body);
 
@@ -55,7 +58,7 @@ app.post('/connections', jsonParser, function(req, res) {
 //   Handle client polling for offer response
 //
 app.get('/connections/:connectionId/answer', function(req, res) {
-    logger.info( "get offer response Received .. " )
+    logger.info( "get offer response Received .. " );
 
     const connectionId = req.params.connectionId;
 
@@ -70,7 +73,7 @@ app.get('/connections/:connectionId/answer', function(req, res) {
 });
 
 app.post('/connections/:connectionId/answer', jsonParser, function(req, res) {
-    logger.info( "offer response Received .. " )
+    logger.info( "offer response Received .. " );
 
     const connectionId = req.params.connectionId;
     const offerResp = req.body;
@@ -101,7 +104,7 @@ app.get('/connections/:connectionId/offer', function(req, res) {
 //   Handle trans container trquest to get unserved offer
 //
 app.get('/queue', function(req, res) {
-    logger.info( "get unserved offer request Received .. " )
+    logger.info( "get unserved offer request Received .. " );
 
     const connectionId = storage.getWaitingOffer();
 
@@ -114,16 +117,28 @@ app.get('/queue', function(req, res) {
 });
 
 app.post('/connections/:connectionId/ice', jsonParser, function(req, res) {
-    logger.info( "offer response Received .. " )
+    logger.info( "post ice request Received .. " );
 
     const connectionId = req.params.connectionId;
     const ice = req.body;
 
-    if(!storage.saveIceCandidate(connectionId, ice)) {
+    if(!storage.addCandidate(connectionId, ice)) {
         res.status(404).json({err:"offer not exist"});
     } else {
-        res.status(201).json(offerResp);
+        res.sendStatus(201);
     }
-
 });
 
+
+app.get('/connections/:connectionId/ice', function(req, res) {
+    logger.info( "get ice request Received .. " )
+
+    const connectionId = req.params.connectionId;
+    const candidate = storage.getCandidate(connectionId);
+
+    if(!candidate) {
+        res.status(404).json({err:"offer not exist"});
+    } else {
+        res.status(200).json(candidate);
+    }
+});

@@ -4,18 +4,34 @@ const request = require('request');
 //const serverUri = "http://rdkucs1.il.nds.com:57778/";
 const serverUri = "http://localhost:9090/";
 
+function getCandidate(connectionId) {
+    request.get(serverUri + 'connections/'+ connectionId + '/' + 'ice', (err, res, body) => {
+        if (res.statusCode !== 200 || err) {
+            console.log(err);
+            console.log("no candidate will try again soon");
+            setTimeout(getCandidate, 1000, connectionId);
+        } else {
+            console.log("got new candidate will try again soon");
+            console.log(JSON.stringify(body));
+            setTimeout(getCandidate, 1000, connectionId);
+        }
+    });
+};
+
 
 function getOffer(connectionId) {
     console.log("requesting offer for connection id: " + connectionId)
     request.get(serverUri + 'connections/' + connectionId + '/' + 'offer', (err, res, body) => {
         if (res.statusCode !== 200 || err) {
             console.log(err);
-            setTimeout(getOfferResponse, 2000, connectionId);
-        }
-        console.log("Got an offer from signaling server");
-        console.log(JSON.stringify(body));
+            setTimeout(getOffer, 2000, connectionId);
+        } else {
+            console.log("Got an offer from signaling server");
+            console.log(JSON.stringify(body));
 
-        sendOfferResponse(connectionId)
+            sendOfferResponse(connectionId);
+        }
+
     });
 };
 
@@ -24,6 +40,10 @@ function sendOfferResponse(connectionId) {
     var offer = {type: "answer", sdp: sdp};
     request.post(serverUri + 'connections/' + connectionId + '/' + 'answer', { json: true ,body:offer}, (err, res, body) => {
         if (err) { setTimeout(getConnection, 5000, connectionId);return console.log(err); }
+        else {
+            console.log("start polling for candidate")
+            getCandidate(connectionId);
+        }
         console.log(connectionId);
     });
 };
@@ -32,7 +52,7 @@ function sendOfferResponse(connectionId) {
 function getConnection() {
     console.log("Looking for a connection to serve")
     request.get(serverUri + 'queue', (err, res, body) => {
-        if (res.statusCode !== 200 || err) {setTimeout(getOffer, 10000); return console.log(body); }
+        if (res.statusCode !== 200 || err) {setTimeout(getConnection, 10000); return console.log(body); }
         var response = JSON.parse(body)
         console.log("Got a connection id from the signaling server id: " + response.connectionId);
         setTimeout(getOffer, 5000, response.connectionId);
