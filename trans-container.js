@@ -2,7 +2,7 @@
 const request = require('request');
 
 //const serverUri = "http://rdkucs1.il.nds.com:57778/";
-const serverUri = "http://localhost:9090/";
+const serverUri = "http://localhost:9090/signaling/1.0/";
 
 function getCandidate(connectionId) {
     request.get(serverUri + 'connections/'+ connectionId + '/' + 'ice', (err, res, body) => {

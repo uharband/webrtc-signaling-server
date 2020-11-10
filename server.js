@@ -25,14 +25,18 @@ const storage = require("./lib/storage");
 
 const port = config.server.port;
 
-const app = express()
+const app = express();
+
 var jsonParser = bodyParser.json()
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ type: 'application/*+json' }));
 app.use(cors());
 
+const apiVersion = '1.0';
+const sigPath = '/signaling/' + apiVersion;
 
 app.listen(port,  () => {console.log("Started on PORT " + port);} )
+app.use(sigPath, router)
 
 const processingTimout = config.offerProcessingTimeoutSec;
 
@@ -42,10 +46,11 @@ function handleTimeout(connectionId) {
     }
 }
 
+
 //
 //   Handle offer 
 //
-app.post('/connections', jsonParser, function(req, res) {
+router.post('/connections', jsonParser, function(req, res) {
     logger.info( "offer Received .. " );
 
     const connectionId = storage.addConnection(req.body);
@@ -57,7 +62,7 @@ app.post('/connections', jsonParser, function(req, res) {
 //
 //   Handle client polling for offer response
 //
-app.get('/connections/:connectionId/answer', function(req, res) {
+router.get('/connections/:connectionId/answer', function(req, res) {
     logger.info( "get offer response Received .. " );
 
     const connectionId = req.params.connectionId;
@@ -72,7 +77,7 @@ app.get('/connections/:connectionId/answer', function(req, res) {
 
 });
 
-app.post('/connections/:connectionId/answer', jsonParser, function(req, res) {
+router.post('/connections/:connectionId/answer', jsonParser, function(req, res) {
     logger.info( "offer response Received .. " );
 
     const connectionId = req.params.connectionId;
@@ -86,7 +91,7 @@ app.post('/connections/:connectionId/answer', jsonParser, function(req, res) {
 
 });
 
-app.get('/connections/:connectionId/offer', function(req, res) {
+router.get('/connections/:connectionId/offer', function(req, res) {
     const connectionId = req.params.connectionId;
     logger.info( "get offer Received .. connection id:  " + connectionId );
 
@@ -103,7 +108,7 @@ app.get('/connections/:connectionId/offer', function(req, res) {
 //
 //   Handle trans container trquest to get unserved offer
 //
-app.get('/queue', function(req, res) {
+router.get('/queue', function(req, res) {
     logger.info( "get unserved offer request Received .. " );
 
     const connectionId = storage.getWaitingOffer();
@@ -116,7 +121,7 @@ app.get('/queue', function(req, res) {
     }
 });
 
-app.post('/connections/:connectionId/ice', jsonParser, function(req, res) {
+router.post('/connections/:connectionId/ice', jsonParser, function(req, res) {
     logger.info( "post ice request Received .. " );
 
     const connectionId = req.params.connectionId;
@@ -130,7 +135,7 @@ app.post('/connections/:connectionId/ice', jsonParser, function(req, res) {
 });
 
 
-app.get('/connections/:connectionId/ice', function(req, res) {
+router.get('/connections/:connectionId/ice', function(req, res) {
     logger.info( "get ice request Received .. " )
 
     const connectionId = req.params.connectionId;
