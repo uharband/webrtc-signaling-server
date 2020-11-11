@@ -2,5 +2,6 @@
   "server": {
     "port": 9090
   },
-  "offerProcessingTimeoutSec": 15
+  "offerProcessingTimeoutSec": 15,
+  "connectionIdleTimeoutSec": 10
 }

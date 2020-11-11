@@ -42,7 +42,7 @@ const processingTimout = config.offerProcessingTimeoutSec;
 
 function handleTimeout(connectionId) {
     if(!storage.getOfferResponse(connectionId)) {
-        storage.addToQueue(connectionId);
+        storage.yieldConnection(connectionId);
     }
 }
 
