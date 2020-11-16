@@ -3,5 +3,16 @@
     "port": 9090
   },
   "offerProcessingTimeoutSec": 15,
-  "connectionIdleTimeoutSec": 10
+  "connectionIdleTimeoutSec": 30,
+  "database" : "dynamodb",
+  "queue": "sqs",
+  "aws": {
+    "aws-sdk" : {
+      "region": "eu-west-1"
+    },
+    "sqs" : {
+      "queueName": "wrt-sig-srv-v1"
+    }
+  }
+
 }
