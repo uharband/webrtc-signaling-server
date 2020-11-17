@@ -36,7 +36,7 @@ function postCandidate(connectionId, params) {
 function getOfferResponse(connectionId) {
     request.get(serverUri + 'connections/'+ connectionId + '/' + 'answer', (err, res, body) => {
         if (res.statusCode !== 200 || err) {
-            console.log(err);
+            console.log(err + " " + res.body);
             setTimeout(getOfferResponse, 5000, connectionId);
         } else {
             console.log(JSON.stringify(body));

@@ -47,31 +47,29 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ type: 'application/*+json' }));
 app.use(cors());
 
+
+app.use((req, res, next) => {
+    logger.info(`${req.method} ${req.originalUrl} [REQ]`)
+
+    res.on('finish', () => {
+        logger.info(`${req.method} ${req.originalUrl} [RES]`)
+    })
+
+    next()
+})
+
 const apiVersion = '1.0';
 const sigPath = '/signaling/' + apiVersion;
-
-
-
-
-
-function handleTimeout(connectionId) {
-    if(!connectionManager.getOfferResponse(connectionId)) {
-        connectionManager.yieldConnection(connectionId);
-    }
-}
-
 
 //
 //   Handle offer 
 //
 router.post('/connections', jsonParser, async function(req, res) {
-    logger.info( "offer Received .. " );
-
     try {
         const connectionId = await connectionManager.addConnection(req.body);
         res.status(201).json({connectionId:connectionId});
-    } catch (err){
-        res.status(503).json({Error:err});
+    } catch (error){
+        res.status(error.errorCode? error.errorCode : 503).json(error);
     }
 });
 
@@ -80,76 +78,47 @@ router.post('/connections', jsonParser, async function(req, res) {
 //   Handle client polling for offer response
 //
 router.get('/connections/:connectionId/answer', async function(req, res) {
-    logger.info( "get offer response Received .. " );
-
     var connectionId = req.params.connectionId;
 
-    const offerResp = await connectionManager.getOfferResponse(connectionId);
-
-    if(!offerResp) {
-        res.status(404).json({err:"response not exist"});
-        try {
-            var now = new Date().getTime();
-            setImmediate(async ()=>{
-                await connectionManager.setKeepalive( connectionId, now);
-            })
-        } catch(err) {
-            logger.error(err);
-        }
-    } else {
+    try{
+        const offerResp = await connectionManager.getOfferResponse(connectionId);
         res.status(200).json(offerResp);
+    } catch (error) {
+        res.status(error.errorCode? error.errorCode : 503).json(error);
     }
-
 });
 
 router.post('/connections/:connectionId/answer', jsonParser, async function(req, res) {
-    logger.info( "offer response Received .. " );
-
     const connectionId = req.params.connectionId;
     const offerResp = req.body;
-
-    if(!connectionManager.saveOfferResponse(connectionId, offerResp)) {
-        res.status(404).json({err:"offer not exist"});
-    } else {
+    try{
+        await connectionManager.saveOfferResponse(connectionId, offerResp);
         res.status(201).json(offerResp);
+    } catch (error) {
+        res.status(error.errorCode? error.errorCode : 503).json(error);
     }
-
 });
 
 router.get('/connections/:connectionId/offer', async function(req, res) {
     const connectionId = req.params.connectionId;
-    logger.info( "get offer Received .. connection id:  " + connectionId );
-
-    const offer = await connectionManager.getOffer(connectionId);
-
-    if(!offer) {
-        res.status(404).json({err:"offer not exist"});
-    } else {
+    try{
+        const offer = await connectionManager.getOffer(connectionId);
         res.status(200).json(offer);
-        try {
-            var now = new Date().getTime();
-            setImmediate(async ()=>{
-                await connectionManager.setOfferTime( connectionId, now);
-            })
-        } catch(err) {
-            logger.error(err);
-        }
+    } catch (error) {
+        res.status(error.errorCode? error.errorCode : 503).json(error);
     }
-
 });
 
 //
 //   Handle trans container trquest to get unserved offer
 //
 router.get('/queue', async function(req, res) {
-    logger.info( "get unserved offer request Received .. " );
 
     try{
         const connectionId = await connectionManager.getWaitingOffer();
         res.status(200).json({connectionId:connectionId});
-        setTimeout(handleTimeout, processingTimout*1000, connectionId);
     } catch (error) {
-        res.status(404).json({err:"all offers are currently served"});
+        res.status(error.errorCode? error.errorCode : 503).json(error);
     }
 
 });

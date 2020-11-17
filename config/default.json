@@ -11,7 +11,11 @@
       "region": "eu-west-1"
     },
     "sqs" : {
-      "queueName": "wrt-sig-srv-v1"
+      "queueName": "hyperscale-sig-srv-v1"
+    },
+    "dynamodb" : {
+      "tableName": "hyperscale-connection-v1",
+      "local": false
     }
   }
 
