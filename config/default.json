@@ -3,5 +3,20 @@
     "port": 9090
   },
   "offerProcessingTimeoutSec": 15,
-  "connectionIdleTimeoutSec": 10
+  "connectionIdleTimeoutSec": 30,
+  "database" : "dynamodb",
+  "queue": "sqs",
+  "aws": {
+    "sdk" : {
+      "region": "eu-west-1"
+    },
+    "sqs" : {
+      "queueName": "hyperscale-sig-srv-v1"
+    },
+    "dynamodb" : {
+      "tableName": "hyperscale-connection-v1",
+      "local": false
+    }
+  }
+
 }

@@ -42,7 +42,7 @@ function sendOfferResponse(connectionId) {
         if (err) { setTimeout(getConnection, 5000, connectionId);return console.log(err); }
         else {
             console.log("start polling for candidate")
-            getCandidate(connectionId);
+            //getCandidate(connectionId);
         }
         console.log(connectionId);
     });

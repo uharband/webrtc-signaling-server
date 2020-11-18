@@ -1,9 +1,11 @@
+'use strict';
+
 const express = require('express');
 const router = express.Router();
 const bodyParser = require("body-parser");
 const config = require('config');
 const cors = require('cors');
-
+const app = express();
 var log4js = require("log4js");
 
 
@@ -20,114 +22,116 @@ const log4jsConfig = {
 
 log4js.configure(log4jsConfig, {});
 var logger = log4js.getLogger("server");
+var connectionManager;
 
-const storage = require("./lib/storage");
+(
+    async () => {
+        connectionManager = await require("./lib/connectionManager").getInstance();
+})().then( () => {
+    logger.info("starting server");
 
-const port = config.server.port;
+    const port = config.server.port;
 
-const app = express();
 
-var jsonParser = bodyParser.json()
+
+    app.listen(port, () => {
+        console.log("Started on PORT " + port);
+    });
+    app.use(sigPath, router);
+}).catch((error) => {logger.error("Server init Error --- exit"); process.exit(1);});
+
+
+
+var jsonParser = bodyParser.json();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ type: 'application/*+json' }));
 app.use(cors());
 
+
+app.use((req, res, next) => {
+    logger.info(`${req.method} ${req.originalUrl} [REQ]`)
+
+    res.on('finish', () => {
+        logger.info(`${req.method} ${req.originalUrl} [RES]`)
+    })
+
+    next()
+})
+
 const apiVersion = '1.0';
 const sigPath = '/signaling/' + apiVersion;
-
-app.listen(port,  () => {console.log("Started on PORT " + port);} )
-app.use(sigPath, router)
-
-const processingTimout = config.offerProcessingTimeoutSec;
-
-function handleTimeout(connectionId) {
-    if(!storage.getOfferResponse(connectionId)) {
-        storage.yieldConnection(connectionId);
-    }
-}
-
 
 //
 //   Handle offer 
 //
-router.post('/connections', jsonParser, function(req, res) {
-    logger.info( "offer Received .. " );
-
-    const connectionId = storage.addConnection(req.body);
-
-    res.status(201).json({connectionId:connectionId});
+router.post('/connections', jsonParser, async function(req, res) {
+    try {
+        const connectionId = await connectionManager.addConnection(req.body);
+        res.status(201).json({connectionId:connectionId});
+    } catch (error){
+        res.status(error.errorCode? error.errorCode : 503).json(error);
+    }
 });
 
 
 //
 //   Handle client polling for offer response
 //
-router.get('/connections/:connectionId/answer', function(req, res) {
-    logger.info( "get offer response Received .. " );
+router.get('/connections/:connectionId/answer', async function(req, res) {
+    var connectionId = req.params.connectionId;
 
-    const connectionId = req.params.connectionId;
-
-    const offerResp = storage.getOfferResponse(connectionId);
-
-    if(!offerResp) {
-        res.status(404).json({err:"response not exist"});
-    } else {
+    try{
+        const offerResp = await connectionManager.getOfferResponse(connectionId);
         res.status(200).json(offerResp);
+    } catch (error) {
+        res.status(error.errorCode? error.errorCode : 503).json(error);
     }
-
 });
 
-router.post('/connections/:connectionId/answer', jsonParser, function(req, res) {
-    logger.info( "offer response Received .. " );
-
+router.post('/connections/:connectionId/answer', jsonParser, async function(req, res) {
     const connectionId = req.params.connectionId;
     const offerResp = req.body;
-
-    if(!storage.saveOfferResponse(connectionId, offerResp)) {
-        res.status(404).json({err:"offer not exist"});
-    } else {
+    try{
+        await connectionManager.saveOfferResponse(connectionId, offerResp);
         res.status(201).json(offerResp);
+    } catch (error) {
+        res.status(error.errorCode? error.errorCode : 503).json(error);
     }
-
 });
 
-router.get('/connections/:connectionId/offer', function(req, res) {
+router.get('/connections/:connectionId/offer', async function(req, res) {
     const connectionId = req.params.connectionId;
-    logger.info( "get offer Received .. connection id:  " + connectionId );
-
-    const offer = storage.getOffer(connectionId);
-
-    if(!offer) {
-        res.status(404).json({err:"offer not exist"});
-    } else {
+    try{
+        const offer = await connectionManager.getOffer(connectionId);
         res.status(200).json(offer);
+    } catch (error) {
+        res.status(error.errorCode? error.errorCode : 503).json(error);
     }
-
 });
 
 //
 //   Handle trans container trquest to get unserved offer
 //
-router.get('/queue', function(req, res) {
-    logger.info( "get unserved offer request Received .. " );
+router.get('/queue', async function(req, res) {
 
-    const connectionId = storage.getWaitingOffer();
-
-    if (!connectionId) {
-        res.status(404).json({err:"all offers are currently served"});
-    } else {
+    try{
+        const connectionId = await connectionManager.getWaitingOffer();
         res.status(200).json({connectionId:connectionId});
-        setTimeout(handleTimeout, processingTimout*1000, connectionId);
+    } catch (error) {
+        res.status(error.errorCode? error.errorCode : 503).json(error);
     }
+
 });
 
+
+/*
 router.post('/connections/:connectionId/ice', jsonParser, function(req, res) {
     logger.info( "post ice request Received .. " );
 
     const connectionId = req.params.connectionId;
     const ice = req.body;
 
-    if(!storage.addCandidate(connectionId, ice)) {
+    if(!connectionManager.addCandidate(connectionId, ice)) {
         res.status(404).json({err:"offer not exist"});
     } else {
         res.sendStatus(201);
@@ -139,7 +143,7 @@ router.get('/connections/:connectionId/ice', function(req, res) {
     logger.info( "get ice request Received .. " )
 
     const connectionId = req.params.connectionId;
-    const candidate = storage.getCandidate(connectionId);
+    const candidate = connectionManager.getCandidate(connectionId);
 
     if(!candidate) {
         res.status(404).json({err:"offer not exist"});
@@ -147,3 +151,5 @@ router.get('/connections/:connectionId/ice', function(req, res) {
         res.status(200).json(candidate);
     }
 });
+
+*/
