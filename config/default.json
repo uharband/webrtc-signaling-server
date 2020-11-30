@@ -6,12 +6,20 @@
   "connectionIdleTimeoutSec": 30,
   "database" : "dynamodb",
   "queue": "sqs",
+  "connectionTypes": ["client", "application"],
   "aws": {
     "sdk" : {
       "region": "eu-west-1"
     },
     "sqs" : {
-      "queueName": "hyperscale-sig-srv-v1"
+      "queues" : [
+        {
+          "type": "client", "name" : "hyperscale-sig-srv-client-v1"
+        },
+        {
+          "type": "application", "name" : "hyperscale-sig-srv-app-v1"
+        }
+      ]
     },
     "dynamodb" : {
       "tableName": "hyperscale-connection-v1",

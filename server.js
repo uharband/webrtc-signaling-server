@@ -23,7 +23,6 @@ const log4jsConfig = {
 log4js.configure(log4jsConfig, {});
 var logger = log4js.getLogger("server");
 var connectionManager;
-
 (
     async () => {
         connectionManager = await require("./lib/connectionManager").getInstance();
@@ -31,8 +30,6 @@ var connectionManager;
     logger.info("starting server");
 
     const port = config.server.port;
-
-
 
     app.listen(port, () => {
         console.log("Started on PORT " + port);
@@ -49,11 +46,11 @@ app.use(cors());
 
 
 app.use((req, res, next) => {
-    logger.info(`${req.method} ${req.originalUrl} [REQ]`)
+    logger.info(`${req.method} ${req.originalUrl} [REQ]`);
 
     res.on('finish', () => {
-        logger.info(`${req.method} ${req.originalUrl} [RES]`)
-    })
+        logger.info(`${req.method} ${req.originalUrl} [RES]`);
+    });
 
     next()
 })
@@ -64,9 +61,12 @@ const sigPath = '/signaling/' + apiVersion;
 //
 //   Handle offer 
 //
-router.post('/connections', jsonParser, async function(req, res) {
+router.post('/:connectionType/connections', jsonParser, async function(req, res) {
+    const connectionType = req.params.connectionType;
+    const appConnectionId = req.query.connectionId;
+
     try {
-        const connectionId = await connectionManager.addConnection(req.body);
+        const connectionId = await connectionManager.addConnection(req.body, connectionType, appConnectionId);
         res.status(201).json({connectionId:connectionId});
     } catch (error){
         res.status(error.errorCode? error.errorCode : 503).json(error);
@@ -78,7 +78,7 @@ router.post('/connections', jsonParser, async function(req, res) {
 //   Handle client polling for offer response
 //
 router.get('/connections/:connectionId/answer', async function(req, res) {
-    var connectionId = req.params.connectionId;
+    const connectionId = req.params.connectionId;
 
     try{
         const offerResp = await connectionManager.getOfferResponse(connectionId);
@@ -112,10 +112,11 @@ router.get('/connections/:connectionId/offer', async function(req, res) {
 //
 //   Handle trans container trquest to get unserved offer
 //
-router.get('/queue', async function(req, res) {
+router.get('/:connectionType/queue', async function(req, res) {
+    const connectionType = req.params.connectionType;
 
     try{
-        const connectionId = await connectionManager.getWaitingOffer();
+        const connectionId = await connectionManager.getWaitingOffer(connectionType);
         res.status(200).json({connectionId:connectionId});
     } catch (error) {
         res.status(error.errorCode? error.errorCode : 503).json(error);
