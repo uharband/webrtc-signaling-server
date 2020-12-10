@@ -15,7 +15,7 @@ const log4jsConfig = {
         "type": "console", "layout": {
             "type": "pattern", "pattern": "%[%d{ISO8601_WITH_TZ_OFFSET} %p %c -%] %m", "tokens": {}
          }
-        }
+        },
     },
     "categories": {"default": { "appenders": ["server"], "level": "info" }}
 };
@@ -32,7 +32,7 @@ var connectionManager;
     const port = config.server.port;
 
     app.listen(port, () => {
-        console.log("Started on PORT " + port);
+        logger.info("Started on PORT " + port);
     });
     app.use(sigPath, router);
 }).catch((error) => {logger.error("Server init Error --- exit"); process.exit(1);});
