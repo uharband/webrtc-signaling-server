@@ -59,7 +59,7 @@ const apiVersion = '1.0';
 const sigPath = '/signaling/' + apiVersion;
 
 //
-//   Handle offer 
+//   Handle offer
 //
 router.post('/:connectionType/connections', jsonParser, async function(req, res) {
     const connectionType = req.params.connectionType;
@@ -154,3 +154,79 @@ router.get('/connections/:connectionId/ice', function(req, res) {
 });
 
 */
+
+/*  Handle debug offers and answers */
+
+// 1. debug client gets connectionId by deviceId
+router.get('/connections', async function(req, res) {
+    let deviceId = req.query.deviceId;
+    try{
+        let connectionId = await connectionManager.getConnectionIdByDeviceId(deviceId);
+        res.status(200).json({connectionId: connectionId})
+    }
+    catch (error) {
+        res.status(error.errorCode? error.errorCode : 503).json(error);
+    }
+});
+
+// 2. debug clients puts it's offer
+router.put('/connections/:connectionId/debug-offer', jsonParser, async function(req, res) {
+    const appConnectionId = req.params.connectionId;
+
+    try {
+        await connectionManager.putDebugOffer(appConnectionId, req.body);
+        res.status(201).send();
+    } catch (error){
+        res.status(error.errorCode? error.errorCode : 500).json(error);
+    }
+});
+
+// 3. tc gets debug offer
+router.get('/connections/:connectionId/debug-offer', async function(req, res) {
+    const connectionId = req.params.connectionId;
+    try{
+        const offer = await connectionManager.getDebugOffer(connectionId);
+        res.status(200).json(offer);
+    } catch (error) {
+        res.status(error.errorCode? error.errorCode : 503).json(error);
+    }
+});
+
+// 4. tc puts it's answer
+router.put('/connections/:connectionId/debug-answer', jsonParser, async function(req, res) {
+    const appConnectionId = req.params.connectionId;
+
+    try {
+        await connectionManager.putDebugOfferAnswer(appConnectionId, req.body);
+        res.status(201).send();
+    } catch (error){
+        res.status(error.errorCode? error.errorCode : 503).json(error);
+    }
+});
+
+// 5. debug client gets tc answer
+router.get('/connections/:connectionId/debug-answer', async function(req, res) {
+    const connectionId = req.params.connectionId;
+
+    try{
+        const offerResp = await connectionManager.getDebugOfferResponse(connectionId);
+        res.status(200).json(offerResp);
+    } catch (error) {
+        res.status(error.errorCode? error.errorCode : 503).json(error);
+    }
+});
+
+// 6. when debug client disconnects tc deletes the offer to allow a new debug connection
+router.delete('/connections/:connectionId/debug-offer', jsonParser, async function(req, res) {
+    const appConnectionId = req.params.connectionId;
+
+    try {
+        await connectionManager.deleteDebugOffer(appConnectionId);
+        res.status(200).send();
+    } catch (error){
+        res.status(error.errorCode? error.errorCode : 503).json(error);
+    }
+});
+
+
+
