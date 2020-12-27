@@ -15,7 +15,7 @@ const log4jsConfig = {
         "type": "console", "layout": {
             "type": "pattern", "pattern": "%[%d{ISO8601_WITH_TZ_OFFSET} %p %c -%] %m", "tokens": {}
          }
-        }
+        },
     },
     "categories": {"default": { "appenders": ["server"], "level": "info" }}
 };
@@ -23,7 +23,6 @@ const log4jsConfig = {
 log4js.configure(log4jsConfig, {});
 var logger = log4js.getLogger("server");
 var connectionManager;
-
 (
     async () => {
         connectionManager = await require("./lib/connectionManager").getInstance();
@@ -32,10 +31,8 @@ var connectionManager;
 
     const port = config.server.port;
 
-
-
     app.listen(port, () => {
-        console.log("Started on PORT " + port);
+        logger.info("Started on PORT " + port);
     });
     app.use(sigPath, router);
 }).catch((error) => {logger.error("Server init Error --- exit"); process.exit(1);});
@@ -49,11 +46,11 @@ app.use(cors());
 
 
 app.use((req, res, next) => {
-    logger.info(`${req.method} ${req.originalUrl} [REQ]`)
+    logger.info(`${req.method} ${req.originalUrl} [REQ]`);
 
     res.on('finish', () => {
-        logger.info(`${req.method} ${req.originalUrl} [RES]`)
-    })
+        logger.info(`${req.method} ${req.originalUrl} [RES]`);
+    });
 
     next()
 })
@@ -62,11 +59,14 @@ const apiVersion = '1.0';
 const sigPath = '/signaling/' + apiVersion;
 
 //
-//   Handle offer 
+//   Handle offer
 //
-router.post('/connections', jsonParser, async function(req, res) {
+router.post('/:connectionType/connections', jsonParser, async function(req, res) {
+    const connectionType = req.params.connectionType;
+    const appConnectionId = req.query.connectionId;
+
     try {
-        const connectionId = await connectionManager.addConnection(req.body);
+        const connectionId = await connectionManager.addConnection(req.body, connectionType, appConnectionId);
         res.status(201).json({connectionId:connectionId});
     } catch (error){
         res.status(error.errorCode? error.errorCode : 503).json(error);
@@ -78,7 +78,7 @@ router.post('/connections', jsonParser, async function(req, res) {
 //   Handle client polling for offer response
 //
 router.get('/connections/:connectionId/answer', async function(req, res) {
-    var connectionId = req.params.connectionId;
+    const connectionId = req.params.connectionId;
 
     try{
         const offerResp = await connectionManager.getOfferResponse(connectionId);
@@ -112,10 +112,11 @@ router.get('/connections/:connectionId/offer', async function(req, res) {
 //
 //   Handle trans container trquest to get unserved offer
 //
-router.get('/queue', async function(req, res) {
+router.get('/:connectionType/queue', async function(req, res) {
+    const connectionType = req.params.connectionType;
 
     try{
-        const connectionId = await connectionManager.getWaitingOffer();
+        const connectionId = await connectionManager.getWaitingOffer(connectionType);
         res.status(200).json({connectionId:connectionId});
     } catch (error) {
         res.status(error.errorCode? error.errorCode : 503).json(error);
@@ -153,3 +154,79 @@ router.get('/connections/:connectionId/ice', function(req, res) {
 });
 
 */
+
+/*  Handle debug offers and answers */
+
+// 1. debug client gets connectionId by deviceId
+router.get('/connections', async function(req, res) {
+    let deviceId = req.query.deviceId;
+    try{
+        let connectionId = await connectionManager.getConnectionIdByDeviceId(deviceId);
+        res.status(200).json({connectionId: connectionId})
+    }
+    catch (error) {
+        res.status(error.errorCode? error.errorCode : 503).json(error);
+    }
+});
+
+// 2. debug clients puts it's offer
+router.put('/connections/:connectionId/debug-offer', jsonParser, async function(req, res) {
+    const appConnectionId = req.params.connectionId;
+
+    try {
+        await connectionManager.putDebugOffer(appConnectionId, req.body);
+        res.status(201).send();
+    } catch (error){
+        res.status(error.errorCode? error.errorCode : 500).json(error);
+    }
+});
+
+// 3. tc gets debug offer
+router.get('/connections/:connectionId/debug-offer', async function(req, res) {
+    const connectionId = req.params.connectionId;
+    try{
+        const offer = await connectionManager.getDebugOffer(connectionId);
+        res.status(200).json(offer);
+    } catch (error) {
+        res.status(error.errorCode? error.errorCode : 503).json(error);
+    }
+});
+
+// 4. tc puts it's answer
+router.put('/connections/:connectionId/debug-answer', jsonParser, async function(req, res) {
+    const appConnectionId = req.params.connectionId;
+
+    try {
+        await connectionManager.putDebugOfferAnswer(appConnectionId, req.body);
+        res.status(201).send();
+    } catch (error){
+        res.status(error.errorCode? error.errorCode : 503).json(error);
+    }
+});
+
+// 5. debug client gets tc answer
+router.get('/connections/:connectionId/debug-answer', async function(req, res) {
+    const connectionId = req.params.connectionId;
+
+    try{
+        const offerResp = await connectionManager.getDebugOfferResponse(connectionId);
+        res.status(200).json(offerResp);
+    } catch (error) {
+        res.status(error.errorCode? error.errorCode : 503).json(error);
+    }
+});
+
+// 6. when debug client disconnects tc deletes the offer to allow a new debug connection
+router.delete('/connections/:connectionId/debug-offer', jsonParser, async function(req, res) {
+    const appConnectionId = req.params.connectionId;
+
+    try {
+        await connectionManager.deleteDebugOffer(appConnectionId);
+        res.status(200).send();
+    } catch (error){
+        res.status(error.errorCode? error.errorCode : 503).json(error);
+    }
+});
+
+
+
