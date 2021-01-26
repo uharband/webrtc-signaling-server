@@ -7,6 +7,7 @@ const config = require('config');
 const cors = require('cors');
 const app = express();
 var log4js = require("log4js");
+const { nanoid } = require("nanoid");
 
 
 const log4jsConfig = {
@@ -46,10 +47,11 @@ app.use(cors());
 
 
 app.use((req, res, next) => {
-    logger.info(`${req.method} ${req.originalUrl} [REQ]`);
+    req.FCID = nanoid();
+    logger.info(`${req.FCID} ${req.method} ${req.originalUrl} [REQ]`);
 
     res.on('finish', () => {
-        logger.info(`${req.method} ${req.originalUrl} [RES]`);
+        logger.info(`${req.FCID} ${req.method} ${req.originalUrl} ${res.statusCode} ${res.statusMessage} [RES]`);
     });
 
     next()
