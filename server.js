@@ -52,6 +52,9 @@ app.use((req, res, next) => {
 
     res.on('finish', () => {
         logger.info(`${req.FCID} ${req.method} ${req.originalUrl} ${res.statusCode} ${res.statusMessage} [RES]`);
+        if(res.statusCode >= 400) {
+            logger.error(`${req.FCID} ${JSON.stringify(req.body)}`)
+        }
     });
 
     next()
