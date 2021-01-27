@@ -72,7 +72,9 @@ router.post('/:connectionType/connections', jsonParser, async function(req, res)
         res.status(201).json({connectionId:connectionId});
     } catch (error){
         res.status(error.errorCode? error.errorCode : 503).json(error);
-        logger.error(req.FCID + " : " + JSON.stringify(error));
+        if(error.errorCode >= 500) {
+            logger.error(req.FCID + " : " + JSON.stringify(error));
+        }
     }
 });
 
@@ -88,7 +90,9 @@ router.get('/connections/:connectionId/answer', async function(req, res) {
         res.status(200).json(offerResp);
     } catch (error) {
         res.status(error.errorCode? error.errorCode : 503).json(error);
-        logger.error(req.FCID + " : " + JSON.stringify(error));
+        if(error.errorCode >= 500) {
+            logger.error(req.FCID + " : " + JSON.stringify(error));
+        }
     }
 });
 
@@ -100,7 +104,9 @@ router.post('/connections/:connectionId/answer', jsonParser, async function(req,
         res.status(201).json(offerResp);
     } catch (error) {
         res.status(error.errorCode? error.errorCode : 503).json(error);
-        logger.error(req.FCID + " : " + JSON.stringify(error));
+        if(error.errorCode >= 500) {
+            logger.error(req.FCID + " : " + JSON.stringify(error));
+        }
     }
 });
 
@@ -111,7 +117,9 @@ router.get('/connections/:connectionId/offer', async function(req, res) {
         res.status(200).json(offer);
     } catch (error) {
         res.status(error.errorCode? error.errorCode : 503).json(error);
-        logger.error(req.FCID + " : " + JSON.stringify(error));
+        if(error.errorCode >= 500) {
+            logger.error(req.FCID + " : " + JSON.stringify(error));
+        }
     }
 });
 
@@ -126,7 +134,10 @@ router.get('/:connectionType/queue', async function(req, res) {
         res.status(200).json({connectionId:connectionId});
     } catch (error) {
         res.status(error.errorCode? error.errorCode : 503).json(error);
-        logger.error(req.FCID + " : " + JSON.stringify(error));
+        if(error.errorCode >= 500) {
+            logger.error(req.FCID + " : " + JSON.stringify(error));
+        }
+
     }
 
 });
