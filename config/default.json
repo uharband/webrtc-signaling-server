@@ -4,7 +4,7 @@
   },
   "offerProcessingTimeoutSec": 15,
   "connectionIdleTimeoutSec": 30,
-  "database" : "dynamodb",
+  "database" : "dynamodbV3",
   "queue": "sqs",
   "connectionTypes": ["client", "application"],
   "aws": {
@@ -23,6 +23,7 @@
     },
     "dynamodb" : {
       "tableName": "hyperscale-connection-v1",
+      "connectionTtlDays":  7,
       "local": false
     }
   }

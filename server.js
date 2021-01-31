@@ -7,6 +7,7 @@ const config = require('config');
 const cors = require('cors');
 const app = express();
 var log4js = require("log4js");
+const { nanoid } = require("nanoid");
 
 
 const log4jsConfig = {
@@ -46,10 +47,11 @@ app.use(cors());
 
 
 app.use((req, res, next) => {
-    logger.info(`${req.method} ${req.originalUrl} [REQ]`);
+    req.FCID = nanoid();
+    logger.info(`${req.FCID} ${req.method} ${req.originalUrl} [REQ]`);
 
     res.on('finish', () => {
-        logger.info(`${req.method} ${req.originalUrl} [RES]`);
+        logger.info(`${req.FCID} ${req.method} ${req.originalUrl} ${res.statusCode} ${res.statusMessage} [RES]`);
     });
 
     next()
@@ -67,9 +69,13 @@ router.post('/:connectionType/connections', jsonParser, async function(req, res)
 
     try {
         const connectionId = await connectionManager.addConnection(req.body, connectionType, appConnectionId);
+        logger.info("Connection %s created", connectionId);
         res.status(201).json({connectionId:connectionId});
     } catch (error){
         res.status(error.errorCode? error.errorCode : 503).json(error);
+        if(error.errorCode >= 500) {
+            logger.error(req.FCID + " : " + JSON.stringify(error));
+        }
     }
 });
 
@@ -82,9 +88,13 @@ router.get('/connections/:connectionId/answer', async function(req, res) {
 
     try{
         const offerResp = await connectionManager.getOfferResponse(connectionId);
+        logger.info("Connection %s answer has given, signaling part completed!", connectionId);
         res.status(200).json(offerResp);
     } catch (error) {
         res.status(error.errorCode? error.errorCode : 503).json(error);
+        if(error.errorCode >= 500) {
+            logger.error(req.FCID + " : " + JSON.stringify(error));
+        }
     }
 });
 
@@ -93,9 +103,13 @@ router.post('/connections/:connectionId/answer', jsonParser, async function(req,
     const offerResp = req.body;
     try{
         await connectionManager.saveOfferResponse(connectionId, offerResp);
+        logger.info("Connection %s got answer from peer ", connectionId);
         res.status(201).json(offerResp);
     } catch (error) {
         res.status(error.errorCode? error.errorCode : 503).json(error);
+        if(error.errorCode >= 500) {
+            logger.error(req.FCID + " : " + JSON.stringify(error));
+        }
     }
 });
 
@@ -103,9 +117,14 @@ router.get('/connections/:connectionId/offer', async function(req, res) {
     const connectionId = req.params.connectionId;
     try{
         const offer = await connectionManager.getOffer(connectionId);
+        logger.info("Connection %s TC started webrtc connections establishment", connectionId);
         res.status(200).json(offer);
+
     } catch (error) {
         res.status(error.errorCode? error.errorCode : 503).json(error);
+        if(error.errorCode >= 500) {
+            logger.error(req.FCID + " : " + JSON.stringify(error));
+        }
     }
 });
 
@@ -117,9 +136,14 @@ router.get('/:connectionType/queue', async function(req, res) {
 
     try{
         const connectionId = await connectionManager.getWaitingOffer(connectionType);
+        logger.info("Connection %s allocated to TC", connectionId);
         res.status(200).json({connectionId:connectionId});
     } catch (error) {
         res.status(error.errorCode? error.errorCode : 503).json(error);
+        if(error.errorCode >= 500) {
+            logger.error(req.FCID + " : " + JSON.stringify(error));
+        }
+
     }
 
 });
@@ -162,7 +186,7 @@ router.get('/connections', async function(req, res) {
     let deviceId = req.query.deviceId;
     try{
         let connectionId = await connectionManager.getConnectionIdByDeviceId(deviceId);
-        res.status(200).json({connectionId: connectionId})
+        res.status(200).json({connectionId: connectionId});
     }
     catch (error) {
         res.status(error.errorCode? error.errorCode : 503).json(error);
