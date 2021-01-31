@@ -23,6 +23,7 @@
     },
     "dynamodb" : {
       "tableName": "hyperscale-connection-v1",
+      "connectionTtlDays":  7,
       "local": false
     }
   }
